@@ -3,6 +3,7 @@ import pygame
 from ArcGenerator import circularArc
 
 import math
+import numpy as np
 import random
 
 #initialize pygame window
@@ -37,6 +38,7 @@ class Hand():
     def __init__(self):
         self.isDown = False
         self.mouseStartPos = None
+        self.lastSegmentStart = None
 
         self.points = []
 
@@ -48,14 +50,15 @@ class Hand():
         self.points.insert(0, self.mouseStartPos)
 
         #check if intersects with any circle
+        self.lastSegmentStart = self.mouseStartPos
         for circle in circles:
-            distanceLinePointData = distanceLinePoint(self.mouseStartPos, pygame.mouse.get_pos(), circle.center) # -> distance, onsegment, point
+            distanceLinePointData = distanceLinePoint(self.lastSegmentStart, pygame.mouse.get_pos(), circle.center) # -> distance, onsegment, point
 
             if not distanceLinePointData[1] or distanceLinePointData[0] > circle.radius:
                 continue
 
             #check whether endpoints inside circle
-            vecTo = (circle.center[0] - self.mouseStartPos[0], circle.center[1] - self.mouseStartPos[1])
+            vecTo = (circle.center[0] - self.lastSegmentStart[0], circle.center[1] - self.lastSegmentStart[1])
             dist = math.sqrt(vecTo[0] * vecTo[0] + vecTo[1] * vecTo[1])
             if dist < circle.radius:
                 continue
@@ -66,23 +69,29 @@ class Hand():
                 continue
 
             #get tangent points
-            tp11, tp12 = tangentPoints(circle.center, circle.radius, self.mouseStartPos)
+            tp11, tp12 = tangentPoints(circle.center, circle.radius, self.lastSegmentStart)
             tp21, tp22 = tangentPoints(circle.center, circle.radius, pygame.mouse.get_pos())
 
             if tp11 == False or tp12 == False or tp21 == False or tp22 == False:
-                continue
+                break
 
             """
-            pygame.draw.line(screen, (255, 0, 0), self.mouseStartPos, tp11, 2)
+            pygame.draw.line(screen, (255, 0, 0), self.lastSegmentStart, tp11, 2)
             pygame.draw.line(screen, (255, 0, 0), tp22, pygame.mouse.get_pos(), 2)
             
             pygame.draw.line(screen, (0, 0, 255), tp21, pygame.mouse.get_pos(), 2)
-            pygame.draw.line(screen, (0, 0, 255), self.mouseStartPos, tp12, 2)
+            pygame.draw.line(screen, (0, 0, 255), self.lastSegmentStart, tp12, 2)
             """
 
-            #get either pair
-            #todo - get correct side pair
+            #get correct side pair
             pair = 1
+            focusDirection = -1
+            vecToEnd = (pygame.mouse.get_pos()[0] - self.lastSegmentStart[0], pygame.mouse.get_pos()[1] - self.lastSegmentStart[1])
+            vecToCenter = (circle.center[0] - self.lastSegmentStart[0], circle.center[1] - self.lastSegmentStart[1])
+            if getClockwiseAngle(vecToCenter, vecToEnd) > 180:
+                pair = 2
+                focusDirection = 1
+
             tp1, tp2 = tp11, tp22
             if pair == 1:
                 tp1, tp2 = tp12, tp21
@@ -98,11 +107,12 @@ class Hand():
             interpPoints = []
             accuracy = 25
             for i in range(accuracy):
-                interpPoints.append(circularArc(tp1, tp2, -focusLength, i/accuracy, False))
+                interpPoints.append(circularArc(tp1, tp2, focusLength * focusDirection, i/accuracy, False))
             self.points = self.points + interpPoints
 
-            #add last tangent point
+            #add last tangent point and update lastSegmentStart for future circles
             self.points.append(tp2)
+            self.lastSegmentStart = tp2
 
         #append last point
         self.points.append(pygame.mouse.get_pos())
@@ -190,14 +200,32 @@ def tangentPoints(center, radius, point):
 
     return tangent1, tangent2
 
+def getClockwiseAngle(frm, to):
+    #get signed angle, get absolute angle
+    signedAngle = np.arctan2(frm[1], to[0]) - np.arctan2(frm[1], to[0])
+    unsignedAngle = abs(signedAngle)
+
+    #normalize unsigned between 0 and 360
+    if unsignedAngle > 180:
+        unsignedAngle = 360 - unsignedAngle
+
+    #get cross product
+    crossP = frm[0] * to[1] - frm[1] * to[0]
+
+    #update to clockwise if the angle was counter clockwise
+    if crossP < 0:
+        unsignedAngle = 360 - unsignedAngle
+
+    return unsignedAngle
+
 #VARIABLE INITIALIZATION -----------------------------------------------------------------------------------------------------------------------------------------
 
 hand = Hand()
 
 circles = []
 
-circle1 = Circle((screenWidth/2, screenHeight/2), 80)
-circle2 = Circle((600, 250), 20)
+circle1 = Circle((screenWidth/2, screenHeight/2), 100)
+circle2 = Circle((600, 250), 100)
 
 #get initial ticks
 prevT = pygame.time.get_ticks()
