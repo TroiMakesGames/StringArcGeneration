@@ -1,6 +1,6 @@
 import math
 
-def arc_point(p1, p2, focusLength, t, flip=False):
+def circularArc(p1, p2, focusLength, t, flip=False):
 
     #check t
     if not 0.0 <= t <= 1.0:
