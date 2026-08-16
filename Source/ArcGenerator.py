@@ -23,85 +23,59 @@ def displayFPS(screen, font_size):
 #FUNCTION DEFINITION - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def arc_point(p1, p2, focusLength, t, flip=False):
-    """
-    Return a point on the circular arc from p1 to p2.
 
-    Parameters
-    ----------
-    p1, p2 : tuple[float, float]
-        The two endpoints of the arc.
-
-    focusLength : float
-        Distance from the midpoint of p1-p2 to the circle center,
-        measured along the perpendicular to the line.
-
-    t : float
-        Interpolation value from 0.0 to 1.0.
-        0.0 -> p1
-        0.5 -> midpoint of the selected arc
-        1.0 -> p2
-
-    flip : bool
-        False -> shorter arc
-        True  -> longer arc
-
-    Returns
-    -------
-    tuple[float, float]
-        The interpolated point on the arc.
-    """
-
+    #check t
     if not 0.0 <= t <= 1.0:
         raise ValueError("t must be between 0 and 1")
 
     x1, y1 = p1
     x2, y2 = p2
 
-    # Vector from p1 to p2
+    #vecto p1-p2
     dx = x2 - x1
     dy = y2 - y1
 
     length = math.hypot(dx, dy)
 
+    #check distance
     if length == 0:
         raise ValueError("p1 and p2 must be different points")
 
-    # Midpoint of the chord
+    #get normal vector + circle center
+    #midpoint
     mx = (x1 + x2) / 2
     my = (y1 + y2) / 2
-
-    # Normalized perpendicular vector
+    #normalized
     nx = -dy / length
     ny = dx / length
-
-    # Circle center
+    #multiplied by focusLength
     cx = mx + nx * focusLength
     cy = my + ny * focusLength
 
-    # Radius
+    #get radius
     radius = math.hypot(x1 - cx, y1 - cy)
 
-    # Angles from center to endpoints
+    #get angles from center to each point
     angle1 = math.atan2(y1 - cy, x1 - cx)
     angle2 = math.atan2(y2 - cy, x2 - cx)
 
-    # Difference between the angles
+    #get diff for proper interpolation
     delta = angle2 - angle1
 
-    # Normalize to [-pi, pi]
+    #normalize to pi for circular nature
     delta = (delta + math.pi) % (2 * math.pi) - math.pi
 
-    # Select the long arc instead of the short arc
+    #select longer arc instead
     if flip:
         if delta > 0:
             delta -= 2 * math.pi
         else:
             delta += 2 * math.pi
 
-    # Interpolate the angle
+    #interpolate angle
     angle = angle1 + delta * t
 
-    # Convert polar coordinates back to Cartesian
+    #convert to polar coords
     x = cx + math.cos(angle) * radius
     y = cy + math.sin(angle) * radius
 
@@ -130,14 +104,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        """if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                pass"""
-
-    """keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:
-        pass"""
-
+    #use example
     p1 = (200, 250)
     p2 = (600, 350)
 
@@ -146,11 +113,11 @@ while running:
         arcPoints.append(arc_point(p1, p2, -500, i/250, True))
 
     for arcPoint in arcPoints:
-        pygame.draw.circle(screen, (155, 155, 155), arcPoint, 2)
+        pygame.draw.circle(screen, (100, 100, 100), arcPoint, 2)
 
     arcPoints = []
-    for i in range(250):
-            arcPoints.append(arc_point(p1, p2, 500, i/250))
+    for i in range(30):
+            arcPoints.append(arc_point(p1, p2, 500, i/30))
     
     for arcPoint in arcPoints:
         pygame.draw.circle(screen, (255, 255, 255), arcPoint, 2)
